@@ -21,7 +21,7 @@ ratioplot = RightPlot[ratiodata, "GLD/OIL"];
 sandpRatioPlot = Overlay[{sandpplot, ratioplot}]; 
 date = DateString[{"Hour24", "Minute", ".", "Second", "-", "MonthShort", "-", "Day", 
      "-", "Year"}]; 
-filename = StringJoin["/Users/padamson/Mathematica/indicators/reports/indicators-", 
-    date, ".pdf"]; 
+filename = StringJoin[$InitialDirectory,"/reports/gold-oil-ratio-", 
+    date, ".eps"]; 
 Export[filename, sandpRatioPlot, ImageSize -> 500]; 
 Exit[]
