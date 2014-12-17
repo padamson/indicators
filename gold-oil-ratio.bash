@@ -1,3 +1,3 @@
 #!/bin/bash
-mkdir -p reports
+mkdir -p plots
 MathKernel -noprompt -run "<<./gold-oil-ratio.m"
