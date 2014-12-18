@@ -23,7 +23,7 @@ sandpplot = LeftPlot[sandpdata, "S&P 500", "S&P 500 Index and GLD/OIL Ratio",
 ratioplot = RightPlot[ratiodata, "GLD/OIL"];
 sandpRatioPlot = Overlay[{sandpplot, ratioplot}]; 
 *)
-sandpRatioPlot = TwoAxisDateListPlot[ratiodata,sandpdata,ImageSize->600,
+sandpRatioPlot = TwoAxisDateListPlot[ratiodata,sandpdata,ImageSize->400,
   FrameLabel->{"",Style["S&P 500",Red,Bold],"",Style["GLD/USO",Black,Bold]},
   PlotStyle->{{Thick,Black},{Thick,Red}}
 ]
@@ -31,5 +31,5 @@ date = DateString[{"Hour24", "Minute", ".", "Second", "-", "MonthShort", "-", "D
      "-", "Year"}]; 
 filename = StringJoin[$InitialDirectory,"/plots/gold-oil-ratio-", 
     date, ".eps"]; 
-Export[filename, sandpRatioPlot, ImageSize -> 500]; 
+Export[filename, sandpRatioPlot]; 
 Exit[]

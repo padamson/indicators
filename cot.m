@@ -24,9 +24,10 @@ For[i=1,i<=1,i++,
     FrameStyle -> {Automatic, Automatic, Automatic, Red}, 
     ImageSize -> 500, FrameLabel -> {"", "", "", "CoT"}];
   *)
-  cotplot = TwoAxisDateListPlot[etfdata,data2,ImageSize->600,
+  cotplot = TwoAxisDateListPlot[data2,etfdata,ImageSize->400,
     FrameLabel -> {"", Style["USO ETF", Red, Bold], "", Style["Confidence of Traders", Black, Bold]},
-    PlotStyle -> {{Thick, Black}, {Thick, Red}}
+    PlotStyle -> {{Thick, Black}, {Thick, Red}},
+    Epilog -> Line[{{data2[[1, 1]], 0}, {data2[[Length[data2], 1]], 0}}]
   ];
   date = DateString[{"Hour24", "Minute", ".", "Second", "-", "MonthShort", "-", "Day", "-", "Year"}];
   filename = StringJoin[$InitialDirectory,"/plots/cot-", etfs[[i]], "-", date, ".eps"];
