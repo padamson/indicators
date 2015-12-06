@@ -6,11 +6,11 @@ runtime: shiny
 output: html_document
 ---
 
-```{r, echo=FALSE}
+```{r setup, echo=FALSE}
 require(quantmod)
 options("getSymbols.warning4.0"=FALSE)
-apikey<-read.csv("./apikey.txt", header = FALSE)
-source("helpers.R")
+#apikey<-read.csv("./apikey.txt", header = FALSE)
+source("./helpers.R")
 ```
 
 Presented here are six key stock market indicators to watch as described by Nellie S. Huang at
@@ -25,7 +25,7 @@ period of time.
 at the moving average. If the S&P 500 is trading above its moving average, the thinking goes, 
 it's a bull market -- time to invest. If it moves below the average, it's a bear market.
 
-```{r, echo=FALSE}
+```{r SPY, echo=FALSE}
 minDate=seq(Sys.Date(), length = 2, by = "-10 years")[2]
 datesMin=seq(Sys.Date(), length = 2, by = "-12 months")[2]
 maxDate=Sys.Date()
@@ -84,7 +84,7 @@ Consumer Confidence Index
 consumers are worried about the future, they spend less. When they're optimistic, they spend more. A
 rise in spending could help revive the economy and lift the stock market. 
 
-```{r,echo=FALSE}
+```{r CCI,echo=FALSE}
 cciData <- getSymbols('UMCSENT', src = 'FRED', method="curl", auto.assign = FALSE)
 maxCciDate <-  range(index(cciData))[2]
 minCciDate <-  range(index(cciData))[1]
@@ -211,7 +211,7 @@ Emerging Markets
 *WHAT IT IS*: Stock markets in developing nations. 
 
 *WHY IT MATTERS*: As you can see from the chart, the stocks of emerging markets and U.S. stocks move roughly in tandem. However, the growth of the consumer class in emerging markets has fueled sales for many U.S. companies, so strength in the stock markets of countries such as Brazil, China and India bodes well for the stocks of companies in developed markets. 
-```{r, echo=FALSE}
+```{r EEM, echo=FALSE}
 #getSymbols('EEM')
 #chartSeries(EEM, subset='last 12 months', plot=FALSE, theme = chartTheme("white"))
 #addSMA(n = 200, on = 1, with.col = Cl, overlay = TRUE, col = "black")
@@ -262,6 +262,8 @@ renderPlot({
               type = "line", log.scale = input$eemLog, TA = NULL,
               name="Emerging Markets ETF")
   addSMA(n = 200, on = 1, with.col = Cl, overlay = TRUE, col = "black")
+  #add_TA(spyDataAdj(),on=1)
+  #chart_Series(eemDataAdj(), TA="add_TA(spyDataAdj(), on=1)")
 })
 ```
 
@@ -274,7 +276,7 @@ view the prospects for corporate profits. A falling P/E could mean investors are
 confidence in the earnings outlook and the overall economy; a rising P/E means they're 
 bullish. Data courtesy [McGraw Hill Financial](http://www.spindices.com/documents/additional-material/sp-500-eps-est.xlsx).
 
-```{r, echo=FALSE}
+```{r PE, echo=FALSE}
 require(xlsx)
 #download file if older than 10 days
 if (!file.exists("./sp-500-eps-est.xlsx") | 
