@@ -1,0 +1,344 @@
+---
+title: "Six Indicators"
+author: "Paul Adamson"
+date: "December 3, 2015"
+runtime: shiny
+output: html_document
+---
+
+```{r, echo=FALSE}
+require(quantmod)
+options("getSymbols.warning4.0"=FALSE)
+apikey<-read.csv("./apikey.txt", header = FALSE)
+source("helpers.R")
+```
+
+Presented here are six key stock market indicators to watch as described by Nellie S. Huang at
+[this link](http://www.kiplinger.com/slideshow/investing/T052-S001-6-key-stock-market-indicators-to-watch-slide-show/index.html#VEQZcU4oQ5l0MEIz.99).
+
+S&P 500 200-Day Moving Average
+------------------------------
+*WHAT IT IS*: The average of daily closing prices of Standard & Poor's 500-stock index over a 
+period of time.
+
+*WHY IT MATTERS*: Many analysts draw the dividing line between bear and bull markets by looking 
+at the moving average. If the S&P 500 is trading above its moving average, the thinking goes, 
+it's a bull market -- time to invest. If it moves below the average, it's a bear market.
+
+```{r, echo=FALSE}
+minDate=seq(Sys.Date(), length = 2, by = "-10 years")[2]
+datesMin=seq(Sys.Date(), length = 2, by = "-12 months")[2]
+maxDate=Sys.Date()
+fluidPage(
+  fluidRow(
+    column(3,
+           checkboxInput("log", "Y-axis log scale", 
+                         value = FALSE)
+    ),
+    column(3,
+           checkboxInput("adjust", 
+                         "Adjust for inflation", value = FALSE)
+    )
+  ),
+  fluidRow(
+    column(12,
+           sliderInput("dates",
+                       "Date range",
+                       min=minDate,
+                       max=maxDate,
+                       value=c(datesMin,
+                               maxDate),
+                       width = "1200px" )
+    )
+  )
+)
+
+spyData <- reactive({
+  getSymbols("^GSPC", src = "yahoo", 
+             from = input$dates[1],
+             to = input$dates[2],
+             auto.assign = FALSE)
+})
+
+spyDataAdj <- reactive({
+  if (!input$adjust) {
+    return(spyData())
+  } else {
+    return(adjust(spyData()))
+  }
+})
+
+renderPlot({
+  chartSeries(spyDataAdj(), theme = chartTheme("white"), 
+              type = "line", log.scale = input$log, TA = NULL,
+              name="S&P 500")
+  addSMA(n = 200, on = 1, with.col = Cl, overlay = TRUE, col = "black")
+})
+```
+
+Consumer Confidence Index
+-------------------------
+*WHAT IT IS*: A monthly gauge of how consumers feel about the economy and their personal finances. 
+
+*WHY IT MATTERS*: Consumer spending accounts for 70% of the country's gross domestic product. When
+consumers are worried about the future, they spend less. When they're optimistic, they spend more. A
+rise in spending could help revive the economy and lift the stock market. 
+
+```{r,echo=FALSE}
+cciData <- getSymbols('UMCSENT', src = 'FRED', method="curl", auto.assign = FALSE)
+maxCciDate <-  range(index(cciData))[2]
+minCciDate <-  range(index(cciData))[1]
+cciDatesMin <- seq(maxCciDate, length = 2, by = "-10 years")[2]
+
+fluidPage(
+  fluidRow(
+    column(6,
+           checkboxInput("cciLog", "Plot y axis on log scale", 
+                         value = FALSE)
+    )
+  ),
+  fluidRow(
+    column(12,
+           sliderInput("cciDates",
+                       "Date range",
+                       min=minCciDate,
+                       max=maxCciDate,
+                       value=c(cciDatesMin,maxCciDate),
+                       width='1200px')
+    )
+  )
+)
+
+renderPlot({
+  chartSeries(cciData, 
+              subset=paste(input$cciDates, collapse = "::"),
+              theme=chartTheme("white"), 
+              log.scale = input$cciLog,
+              name = "Consumer Confidence Index")
+})
+```
+
+Weekly Unemployment Insurance Claims
+------------------------------------
+*WHAT IT IS*: The number of initial claims for unemployment benefits nationwide, reported weekly by the U.S. Department of Labor. 
+
+*WHY IT MATTERS*: Basically, the higher the number, the weaker the economy. When claims decline it's an early indication that the pace of layoffs is slowing, which is a good sign that executives are becoming more confident.
+
+```{r, echo=FALSE}
+#getSymbols('ICSA', src = 'FRED')
+#plot(tail(ICSA,104), main="Weekly Unemployment Insurance Claims")
+
+icsaData <- getSymbols('ICSA', src = 'FRED', method="curl", auto.assign = FALSE)
+maxIcsaDate <-  range(index(icsaData))[2]
+minIcsaDate <-  range(index(icsaData))[1]
+icsaDatesMin <- seq(maxIcsaDate, length = 2, by = "-10 years")[2]
+
+fluidPage(
+  fluidRow(
+    column(3,
+           checkboxInput("icsaLog", "Plot y axis on log scale", 
+                         value = FALSE)
+    )
+  ),
+  fluidRow(
+    column(12,
+           sliderInput("icsaDates",
+                       "Date range",
+                       min=minIcsaDate,
+                       max=maxIcsaDate,
+                       value=c(icsaDatesMin,maxIcsaDate),
+                       width='1200px')
+    )
+  )
+)
+
+renderPlot({
+  chartSeries(icsaData, 
+              subset=paste(input$icsaDates, collapse = "::"),
+              theme=chartTheme("white"), 
+              log.scale = input$icsaLog,
+              name="Weekly Unemployment Insurance Claims")
+})
+```
+
+U.S. Dollar
+-----------
+*WHAT IT IS*: The dollar is the world's premier currency, and its strength or weakness has an impact on our economy and the stock market. 
+
+*WHY IT MATTERS*: In recent years when the dollar has strengthened -- as measured against a basket of other key currencies, including the yen, the euro and the British pound -- the U.S. stock market has dropped. And when the dollar has been weak, the S&P 500 has risen.
+
+```{r,echo=FALSE}
+#getSymbols('DTWEXM', src = 'FRED')
+#plot(tail(DTWEXM,250), main="Trade Weighted USD Index")
+
+usdData <- getSymbols('DTWEXM', src = 'FRED', method="curl", auto.assign = FALSE)
+usdMinDate <-  range(index(usdData))[1]
+usdMaxDate <-  range(index(usdData))[2]
+# need to check that datesMin isn't earlier than minDate
+usdDatesMin <- seq(usdMaxDate, length = 2, by = "-2 years")[2]
+
+fluidPage(
+  fluidRow(
+    column(3,
+           checkboxInput("usdLog", "Y-axis on log scale", 
+                         value = FALSE)
+    )
+  ),
+  fluidRow(
+    column(12,
+           sliderInput("usdDates",
+                       label="Date Range",
+                       min=usdMinDate,
+                       max=usdMaxDate,
+                       value=c(usdDatesMin,usdMaxDate),
+                       width='1200px')
+    )
+  )
+)
+
+renderPlot({
+  chartSeries(usdData, 
+              subset=paste(input$usdDates, collapse = "::"),
+              theme=chartTheme("white"), 
+              log.scale = input$usdLog,
+              name="Trade Weighted USD Index")
+})
+
+```
+
+Emerging Markets
+----------------
+*WHAT IT IS*: Stock markets in developing nations. 
+
+*WHY IT MATTERS*: As you can see from the chart, the stocks of emerging markets and U.S. stocks move roughly in tandem. However, the growth of the consumer class in emerging markets has fueled sales for many U.S. companies, so strength in the stock markets of countries such as Brazil, China and India bodes well for the stocks of companies in developed markets. 
+```{r, echo=FALSE}
+#getSymbols('EEM')
+#chartSeries(EEM, subset='last 12 months', plot=FALSE, theme = chartTheme("white"))
+#addSMA(n = 200, on = 1, with.col = Cl, overlay = TRUE, col = "black")
+eemMinDate=seq(Sys.Date(), length = 2, by = "-10 years")[2]
+eemDatesMin=seq(Sys.Date(), length = 2, by = "-12 months")[2]
+eemMaxDate=Sys.Date()
+fluidPage(
+  fluidRow(
+    column(3,
+           checkboxInput("eemLog", "Y-axis log scale", 
+                         value = FALSE)
+    ),
+    column(3,
+           checkboxInput("eemAdjust", 
+                         "Adjust for inflation", value = FALSE)
+    )
+  ),
+  fluidRow(
+    column(12,
+           sliderInput("eemDates",
+                       "Date range",
+                       min=eemMinDate,
+                       max=eemMaxDate,
+                       value=c(eemDatesMin,
+                               eemMaxDate),
+                       width = "1200px" )
+    )
+  )
+)
+
+eemData <- reactive({
+  getSymbols("EEM", src = "yahoo", 
+             from = input$eemDates[1],
+             to = input$eemDates[2],
+             auto.assign = FALSE)
+})
+
+eemDataAdj <- reactive({
+  if (!input$eemAdjust) {
+    return(eemData())
+  } else {
+    return(adjust(eemData()))
+  }
+})
+
+renderPlot({
+  chartSeries(eemDataAdj(), theme = chartTheme("white"), 
+              type = "line", log.scale = input$eemLog, TA = NULL,
+              name="Emerging Markets ETF")
+  addSMA(n = 200, on = 1, with.col = Cl, overlay = TRUE, col = "black")
+})
+```
+
+Price-to-Earnings Ratio of S&P 500 Over Time
+--------------------------------------------
+*WHAT IT IS*: The price of the index divided by the sum of the operating earnings per share of the companies in the index. 
+
+*WHY IT MATTERS*: Earnings relative to the price of the S&P 500 offer a look at how investors 
+view the prospects for corporate profits. A falling P/E could mean investors are losing 
+confidence in the earnings outlook and the overall economy; a rising P/E means they're 
+bullish. Data courtesy [McGraw Hill Financial](http://www.spindices.com/documents/additional-material/sp-500-eps-est.xlsx).
+
+```{r, echo=FALSE}
+require(xlsx)
+#download file if older than 10 days
+if (!file.exists("./sp-500-eps-est.xlsx") | 
+    as.numeric(difftime(Sys.time(), file.mtime("./sp-500-eps-est.xlsx"), units = "days"))>10){
+  download.file("http://www.spindices.com/documents/additional-material/sp-500-eps-est.xlsx", 
+                destfile="./sp-500-eps-est.xlsx", 
+                method="curl")
+}
+sp500pe.est<-read.xlsx("./sp-500-eps-est.xlsx",1, startRow = 127, endRow = 132, colIndex=c(1,6,7),
+                       header=FALSE, colClasses = c("character","numeric","numeric"),
+                       stringsAsFactors=FALSE)
+sp500pe.act<-read.xlsx("./sp-500-eps-est.xlsx",1, startRow = 135, endRow = 240, colIndex=c(1,6,7),
+                       header=FALSE, colClasses = c("character","numeric","numeric"),
+                       stringsAsFactors=FALSE)
+sp500pe.est$X1[6]<-unlist(strsplit(sp500pe.est$X1[6], split=' ', fixed=TRUE))[1]
+sp500pe<-rbind(sp500pe.est,sp500pe.act)
+sp500pe$X1<-as.Date(sp500pe$X1,format="%m/%d/%Y")
+#check for NAs in date column and replace through interpolation
+for (i in 2:(length(sp500pe$X1)-1)) {
+  if (is.na(sp500pe$X1[i])) {
+    sp500pe$X1[i] = sp500pe$X1[i-1] + floor((sp500pe$X1[i+1]-sp500pe$X1[i-1])/2)
+  }
+}
+# plot(X6~X1,sp500pe,type='l',main="S&P 500 P/E Ratio\nOperating Earnings",xlab='',ylab='')
+# plot(X7~X1,sp500pe,type='l',main="S&P 500 P/E Ratio\nAs Reported",xlab='',ylab='',
+#      ylim=c(10,30))
+sp500pe.op<-xts(sp500pe$X6,order.by=sp500pe$X1)
+sp500pe.rep<-xts(sp500pe$X7,order.by=sp500pe$X1)
+
+maxpeDate <-  range(index(sp500pe.op))[2]
+minpeDate <-  range(index(sp500pe.op))[1]
+peDatesMin <- seq(maxpeDate, length = 2, by = "-2 years")[2]
+
+fluidPage(
+  fluidRow(
+    column(6,
+           checkboxInput("peLog", "Y-axis on log scale", 
+                         value = FALSE)
+    )
+  ),
+  fluidRow(
+    column(12,
+           sliderInput("peDates",
+                       "Date range",
+                       min=minpeDate,
+                       max=maxpeDate,
+                       value=c(peDatesMin,maxpeDate),
+                       width='1200px')
+    )
+  )
+)
+
+renderPlot({
+  chartSeries(sp500pe.op, 
+              subset=paste(input$peDates, collapse = "::"),
+              theme=chartTheme("white"), 
+              log.scale = input$peLog,
+              name = "S&P 500 P/E-Op Earnings")
+})
+renderPlot({
+   chartSeries(sp500pe.rep, 
+              subset=paste(input$peDates, collapse = "::"),
+              theme=chartTheme("white"), 
+              log.scale = input$peLog,
+              name = "S&P 500 P/E-As Reported")
+})
+```
