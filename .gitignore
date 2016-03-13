@@ -3,5 +3,5 @@ reports/*
 plots/*
 apikey.txt
 *.xlsx
-data/
-rsconnect/
+data/*
+rsconnect/*
