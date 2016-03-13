@@ -1,5 +1,5 @@
 ---
-title: "Six Indicators"
+title: "Market Indicators"
 author: "Paul Adamson"
 date: "December 3, 2015"
 runtime: shiny
@@ -8,9 +8,12 @@ output: html_document
 
 ```{r setup, echo=FALSE}
 require(quantmod)
+require(stringr)
 options("getSymbols.warning4.0"=FALSE)
 #apikey<-read.csv("./apikey.txt", header = FALSE)
 source("./helpers.R")
+thm<-chartTheme('white')
+thm$bg.col<-'white'
 ```
 
 Presented here are six key stock market indicators to watch as described by Nellie S. Huang at
@@ -29,6 +32,7 @@ it's a bull market -- time to invest. If it moves below the average, it's a bear
 minDate=seq(Sys.Date(), length = 2, by = "-10 years")[2]
 datesMin=seq(Sys.Date(), length = 2, by = "-12 months")[2]
 maxDate=Sys.Date()
+
 fluidPage(
   fluidRow(
     column(3,
@@ -57,7 +61,8 @@ spyData <- reactive({
   getSymbols("^GSPC", src = "yahoo", 
              from = input$dates[1],
              to = input$dates[2],
-             auto.assign = FALSE)
+             auto.assign = FALSE,
+             method='curl')
 })
 
 spyDataAdj <- reactive({
@@ -69,8 +74,11 @@ spyDataAdj <- reactive({
 })
 
 renderPlot({
-  chartSeries(spyDataAdj(), theme = chartTheme("white"), 
-              type = "line", log.scale = input$log, TA = NULL,
+  chartSeries(spyDataAdj(), 
+              theme = thm, 
+              type = "line", 
+              log.scale = input$log, 
+              TA = NULL,
               name="S&P 500")
   addSMA(n = 200, on = 1, with.col = Cl, overlay = TRUE, col = "black")
 })
@@ -85,37 +93,81 @@ consumers are worried about the future, they spend less. When they're optimistic
 rise in spending could help revive the economy and lift the stock market. 
 
 ```{r CCI,echo=FALSE}
-cciData <- getSymbols('UMCSENT', src = 'FRED', method="curl", auto.assign = FALSE)
-maxCciDate <-  range(index(cciData))[2]
-minCciDate <-  range(index(cciData))[1]
-cciDatesMin <- seq(maxCciDate, length = 2, by = "-10 years")[2]
+cciURL <- "http://www.sca.isr.umich.edu/files/tbmics.csv"
+download.file(cciURL,"./data/tbmics.csv")
+tbmics <- read.csv("./data/tbmics.csv")
+tbmics$date <- as.Date(
+  as.character(paste0(
+    str_pad(match(tbmics$Month,month.name),width = 2,side = "left",pad = "0"),
+            "/","1/",tbmics$YYYY) ), "%m/%d/%Y")
+tempDF <-  data.frame(tbmics$date,tbmics$ICS_ALL)
+icsData <- xts(tempDF[,-1], order.by=tempDF[,1])
+
+maxIcsDate <- range(index(icsData))[2]
+minIcsDate <- range(index(icsData))[1]
+icsDatesMin <- seq(maxIcsDate, length = 2, by = "-10 years")[2]
 
 fluidPage(
   fluidRow(
     column(6,
-           checkboxInput("cciLog", "Plot y axis on log scale", 
+           checkboxInput("icsLog", "Plot y axis on log scale",
                          value = FALSE)
     )
   ),
   fluidRow(
     column(12,
-           sliderInput("cciDates",
+           sliderInput("icsDates",
                        "Date range",
-                       min=minCciDate,
-                       max=maxCciDate,
-                       value=c(cciDatesMin,maxCciDate),
+                       min=minIcsDate,
+                       max=maxIcsDate,
+                       value=c(icsDatesMin,maxIcsDate),
                        width='1200px')
     )
   )
 )
 
 renderPlot({
-  chartSeries(cciData, 
-              subset=paste(input$cciDates, collapse = "::"),
-              theme=chartTheme("white"), 
-              log.scale = input$cciLog,
-              name = "Consumer Confidence Index")
+  chartSeries(icsData,
+              subset=paste(input$icsDates, collapse = "::"),
+              theme=thm,
+              log.scale = input$icsLog,
+              name = "Index of Consumer Sentiment")
 })
+
+#Consumer Confidence Index data from FRED is not up-to-date, so use the above 
+#code to get the Index of Consumer Sentiment straight from UofM site
+
+# cciData <- getSymbols('UMCSENT', src = 'FRED', method="curl", auto.assign = FALSE)
+# maxCciDate <-  range(index(cciData))[2]
+# minCciDate <-  range(index(cciData))[1]
+# cciDatesMin <- seq(maxCciDate, length = 2, by = "-10 years")[2]
+# 
+# fluidPage(
+#   fluidRow(
+#     column(6,
+#            checkboxInput("cciLog", "Plot y axis on log scale", 
+#                          value = FALSE)
+#     )
+#   ),
+#   fluidRow(
+#     column(12,
+#            sliderInput("cciDates",
+#                        "Date range",
+#                        min=minCciDate,
+#                        max=maxCciDate,
+#                        value=c(cciDatesMin,maxCciDate),
+#                        width='1200px')
+#     )
+#   )
+# )
+# 
+# renderPlot({
+#   chartSeries(cciData, 
+#               subset=paste(input$cciDates, collapse = "::"),
+#               theme=thm,
+#               log.scale = input$cciLog,
+#               name = "Consumer Confidence Index")
+# })
 ```
 
 Weekly Unemployment Insurance Claims
@@ -155,7 +207,7 @@ fluidPage(
 renderPlot({
   chartSeries(icsaData, 
               subset=paste(input$icsaDates, collapse = "::"),
-              theme=chartTheme("white"), 
+              theme=thm,
               log.scale = input$icsaLog,
               name="Weekly Unemployment Insurance Claims")
 })
@@ -199,7 +251,7 @@ fluidPage(
 renderPlot({
   chartSeries(usdData, 
               subset=paste(input$usdDates, collapse = "::"),
-              theme=chartTheme("white"), 
+              theme=thm,
               log.scale = input$usdLog,
               name="Trade Weighted USD Index")
 })
@@ -246,7 +298,8 @@ eemData <- reactive({
   getSymbols("EEM", src = "yahoo", 
              from = input$eemDates[1],
              to = input$eemDates[2],
-             auto.assign = FALSE)
+             auto.assign = FALSE,
+             method='curl')
 })
 
 eemDataAdj <- reactive({
@@ -258,7 +311,7 @@ eemDataAdj <- reactive({
 })
 
 renderPlot({
-  chartSeries(eemDataAdj(), theme = chartTheme("white"), 
+  chartSeries(eemDataAdj(), theme=thm,
               type = "line", log.scale = input$eemLog, TA = NULL,
               name="Emerging Markets ETF")
   addSMA(n = 200, on = 1, with.col = Cl, overlay = TRUE, col = "black")
@@ -267,80 +320,3 @@ renderPlot({
 })
 ```
 
-Price-to-Earnings Ratio of S&P 500 Over Time
---------------------------------------------
-*WHAT IT IS*: The price of the index divided by the sum of the operating earnings per share of the companies in the index. 
-
-*WHY IT MATTERS*: Earnings relative to the price of the S&P 500 offer a look at how investors 
-view the prospects for corporate profits. A falling P/E could mean investors are losing 
-confidence in the earnings outlook and the overall economy; a rising P/E means they're 
-bullish. Data courtesy [McGraw Hill Financial](http://www.spindices.com/documents/additional-material/sp-500-eps-est.xlsx).
-
-```{r PE, echo=FALSE}
-require(xlsx)
-#download file if older than 10 days
-if (!file.exists("./sp-500-eps-est.xlsx") | 
-    as.numeric(difftime(Sys.time(), file.mtime("./sp-500-eps-est.xlsx"), units = "days"))>10){
-  download.file("http://www.spindices.com/documents/additional-material/sp-500-eps-est.xlsx", 
-                destfile="./sp-500-eps-est.xlsx", 
-                method="curl")
-}
-sp500pe.est<-read.xlsx("./sp-500-eps-est.xlsx",1, startRow = 127, endRow = 132, colIndex=c(1,6,7),
-                       header=FALSE, colClasses = c("character","numeric","numeric"),
-                       stringsAsFactors=FALSE)
-sp500pe.act<-read.xlsx("./sp-500-eps-est.xlsx",1, startRow = 135, endRow = 240, colIndex=c(1,6,7),
-                       header=FALSE, colClasses = c("character","numeric","numeric"),
-                       stringsAsFactors=FALSE)
-sp500pe.est$X1[6]<-unlist(strsplit(sp500pe.est$X1[6], split=' ', fixed=TRUE))[1]
-sp500pe<-rbind(sp500pe.est,sp500pe.act)
-sp500pe$X1<-as.Date(sp500pe$X1,format="%m/%d/%Y")
-#check for NAs in date column and replace through interpolation
-for (i in 2:(length(sp500pe$X1)-1)) {
-  if (is.na(sp500pe$X1[i])) {
-    sp500pe$X1[i] = sp500pe$X1[i-1] + floor((sp500pe$X1[i+1]-sp500pe$X1[i-1])/2)
-  }
-}
-# plot(X6~X1,sp500pe,type='l',main="S&P 500 P/E Ratio\nOperating Earnings",xlab='',ylab='')
-# plot(X7~X1,sp500pe,type='l',main="S&P 500 P/E Ratio\nAs Reported",xlab='',ylab='',
-#      ylim=c(10,30))
-sp500pe.op<-xts(sp500pe$X6,order.by=sp500pe$X1)
-sp500pe.rep<-xts(sp500pe$X7,order.by=sp500pe$X1)
-
-maxpeDate <-  range(index(sp500pe.op))[2]
-minpeDate <-  range(index(sp500pe.op))[1]
-peDatesMin <- seq(maxpeDate, length = 2, by = "-2 years")[2]
-
-fluidPage(
-  fluidRow(
-    column(6,
-           checkboxInput("peLog", "Y-axis on log scale", 
-                         value = FALSE)
-    )
-  ),
-  fluidRow(
-    column(12,
-           sliderInput("peDates",
-                       "Date range",
-                       min=minpeDate,
-                       max=maxpeDate,
-                       value=c(peDatesMin,maxpeDate),
-                       width='1200px')
-    )
-  )
-)
-
-renderPlot({
-  chartSeries(sp500pe.op, 
-              subset=paste(input$peDates, collapse = "::"),
-              theme=chartTheme("white"), 
-              log.scale = input$peLog,
-              name = "S&P 500 P/E-Op Earnings")
-})
-renderPlot({
-   chartSeries(sp500pe.rep, 
-              subset=paste(input$peDates, collapse = "::"),
-              theme=chartTheme("white"), 
-              log.scale = input$peLog,
-              name = "S&P 500 P/E-As Reported")
-})
-```

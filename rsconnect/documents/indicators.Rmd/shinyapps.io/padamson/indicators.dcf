@@ -1,0 +1,9 @@
+name: indicators
+account: padamson
+server: shinyapps.io
+appId: 72274
+bundleId: 325515
+url: https://padamson.shinyapps.io/indicators
+when: 1449411707.71971
+asMultiple: FALSE
+asStatic: FALSE
