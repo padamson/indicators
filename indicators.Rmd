@@ -1,7 +1,7 @@
 ---
 title: "Market Indicators"
 author: "Paul Adamson"
-date: "December 3, 2015"
+date: "March 16, 2015"
 runtime: shiny
 output: html_document
 ---
@@ -9,8 +9,10 @@ output: html_document
 ```{r setup, echo=FALSE}
 require(quantmod)
 require(stringr)
+require(XML)
+require(lubridate)
+require(xts)
 options("getSymbols.warning4.0"=FALSE)
-#apikey<-read.csv("./apikey.txt", header = FALSE)
 source("./helpers.R")
 thm<-chartTheme('white')
 thm$bg.col<-'white'
@@ -320,3 +322,55 @@ renderPlot({
 })
 ```
 
+Price-to-Earnings Ratio of S&P 500 Over Time
+--------------------------------------------
+*WHAT IT IS*: The price of the index divided by the sum of the operating earnings per share of the companies in the index. 
+
+*WHY IT MATTERS*: Earnings relative to the price of the S&P 500 offer a look at how investors 
+view the prospects for corporate profits. A falling P/E could mean investors are losing 
+confidence in the earnings outlook and the overall economy; a rising P/E means they're 
+bullish. 
+
+Data courtesy [multpl](http://www.multpl.com/table?f=m).
+
+```{r PE, echo=FALSE,eval=TRUE}
+
+url<-"http://www.multpl.com/table?f=m"
+petable<-readHTMLTable(url)$datatable
+names(petable)<-c("date","peratio")
+petable$date<-mdy(petable$date)
+petable$peratio<-as.numeric(str_extract(petable$peratio,"\\d+\\.*\\d*"))
+petable<-xts(petable[,-1],order.by = as.Date(as.POSIXct(petable$date)))
+
+maxpeDate <- range(index(petable))[2]
+minpeDate <- range(index(petable))[1]
+
+peDatesMin <- seq(maxpeDate, length = 2, by = "-5 years")[2]
+
+fluidPage(
+  fluidRow(
+    column(6,
+           checkboxInput("peLog", "Y-axis on log scale", 
+                         value = FALSE)
+    )
+  ),
+  fluidRow(
+    column(12,
+           sliderInput("peDates",
+                       "Date range",
+                       min=minpeDate,
+                       max=maxpeDate,
+                       value=c(peDatesMin,maxpeDate),
+                       width='1200px')
+    )
+  )
+)
+
+renderPlot({
+  chartSeries(petable, 
+              subset=paste(input$peDates, collapse = "::"),
+              theme=thm,
+              log.scale = input$peLog,
+              name = "S&P 500 PE Ratio")
+})
+```

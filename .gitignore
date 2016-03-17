@@ -1,7 +1,7 @@
-scratch/*
-reports/*
-plots/*
+scratch/
+reports/
+plots/
 apikey.txt
 *.xlsx
 data/*
-rsconnect/*
+rsconnect/
